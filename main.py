@@ -4,17 +4,22 @@ from street_abbreviations import STREET_TYPE_ABBREVIATIONS, STREET_SUFFIX_ABBREV
 
 SUBURBS_AND_ADJOINING_SUBURBS = pd.read_csv('suburbs-and-adjoining-suburbs.csv')
 SUBURBS = SUBURBS_AND_ADJOINING_SUBURBS['SUBURB_NAME'].drop_duplicates().tolist()
-STREET_NAMES_WITH_SUBURBS = pd.read_csv('street-names-with-suburbs.csv', keep_default_na=False)
+STREET_NAMES_WITH_SUBURBS = pd.read_csv('street-names-with-suburbs.csv')
 WASTE_COLLECTION_DAYS_COLLECTION_DAYS = pd.read_csv('waste-collection-days-collection-days.csv')
 
 STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET TYPE'] = (
     STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET TYPE'].str.upper().map(STREET_TYPE_ABBREVIATIONS)
 )
 
+# STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'] = (
+#     STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'].apply(
+#         lambda suffix: STREET_SUFFIX_ABBREVIATIONS.get(suffix.upper(), '')
+#     )
+# )
+
+
 STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'] = (
-    STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'].apply(
-        lambda suffix: STREET_SUFFIX_ABBREVIATIONS.get(suffix.upper(), '')
-    )
+    STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'].str.upper().map(STREET_SUFFIX_ABBREVIATIONS)
 )
 
 # print(WASTE_COLLECTION_DAYS_COLLECTION_DAYS[(WASTE_COLLECTION_DAYS_COLLECTION_DAYS["UNIT_NUMBER"].notna()) & (WASTE_COLLECTION_DAYS_COLLECTION_DAYS["HOUSE_NUMBER_SUFFIX"].notna())])
@@ -38,7 +43,7 @@ def format_address(row):
 suburb = None
 suburb_streets = None
 street_name = None
-addresses = None
+address = None
 
 def suburb_completer(text, state):
     suburbs = list(filter(lambda suburb: suburb.startswith(text.upper()), SUBURBS))
@@ -72,7 +77,7 @@ def address_completer(text, state):
     return matches[state]
 
 def main():
-    global suburb, suburb_streets, addresses, street_name
+    global suburb, suburb_streets, street_name, address, addresses
 
     readline.parse_and_bind('tab: menu-complete')
     readline.set_completer_delims('')
@@ -81,19 +86,24 @@ def main():
 
     readline.set_completer(suburb_completer)
 
-    suburb = None
     while suburb not in SUBURBS:
         suburb = input('What suburb do you live in? ')
         if suburb not in SUBURBS:
             print(f"Please enter a valid suburb.")
 
-    suburb_streets = STREET_NAMES_WITH_SUBURBS[STREET_NAMES_WITH_SUBURBS['SUBURB'] == suburb]
-    suburb_streets = suburb_streets['STREET NAME'].str.cat(suburb_streets['STREET TYPE'], sep=' ').tolist()
+    filtered_suburb_streets = STREET_NAMES_WITH_SUBURBS[STREET_NAMES_WITH_SUBURBS['SUBURB'] == suburb]
+    suburb_streets = filtered_suburb_streets['STREET NAME'].str.cat(
+        filtered_suburb_streets['STREET TYPE'], sep=' ').dropna().str.cat(
+            filtered_suburb_streets['STREET SUFFIX'], sep=' ', na_rep='').str.strip().tolist()
 
     readline.set_completer(street_completer)
 
     street_name = None
-    street_name = input('What street do you live in? ')
+    while street_name not in suburb_streets:
+        street_name = input('What street do you live in? ')
+
+        if street_name not in suburb_streets:
+            print(f"Please enter a valid street.")
 
     addresses = WASTE_COLLECTION_DAYS_COLLECTION_DAYS[
         (WASTE_COLLECTION_DAYS_COLLECTION_DAYS["SUBURB"] == suburb) &
@@ -102,7 +112,11 @@ def main():
     addresses = addresses.apply(format_address, axis=1).tolist()
 
     readline.set_completer(address_completer)
-    street_name = input('What is your address? ')
+    
+    while address not in addresses:
+        address = input('What is your address? ')
+        if address not in addresses:
+            print(f"Please enter a valid address.")
 
 
 if __name__ == '__main__':
