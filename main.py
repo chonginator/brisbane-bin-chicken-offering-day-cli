@@ -75,6 +75,8 @@ def main():
     global suburb, suburb_streets, addresses, street_name
 
     readline.parse_and_bind('tab: menu-complete')
+    readline.set_completer_delims('')
+
     print('--- Brisbane Bin Chicken Offering Day ---')
 
     readline.set_completer(suburb_completer)
