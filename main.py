@@ -43,7 +43,7 @@ def format_address(row):
 suburb = None
 suburb_streets = None
 street_name = None
-address = None
+address_input = None
 
 def suburb_completer(text, state):
     suburbs = list(filter(lambda suburb: suburb.startswith(text.upper()), SUBURBS))
@@ -77,7 +77,7 @@ def address_completer(text, state):
     return matches[state]
 
 def main():
-    global suburb, suburb_streets, street_name, address, addresses
+    global suburb, suburb_streets, street_name, address_input, addresses
 
     readline.parse_and_bind('tab: menu-complete')
     readline.set_completer_delims('')
@@ -105,19 +105,23 @@ def main():
         if street_name not in suburb_streets:
             print(f"Please enter a valid street.")
 
-    addresses = WASTE_COLLECTION_DAYS_COLLECTION_DAYS[
+    filtered_addresses = WASTE_COLLECTION_DAYS_COLLECTION_DAYS[
         (WASTE_COLLECTION_DAYS_COLLECTION_DAYS["SUBURB"] == suburb) &
         (WASTE_COLLECTION_DAYS_COLLECTION_DAYS["STREET_NAME"] == street_name)
     ]
-    addresses = addresses.apply(format_address, axis=1).tolist()
+    addresses = filtered_addresses.apply(format_address, axis=1).tolist()
 
     readline.set_completer(address_completer)
     
-    while address not in addresses:
-        address = input('What is your address? ')
-        if address not in addresses:
-            print(f"Please enter a valid address.")
+    while address_input not in addresses:
+        address_input = input('What is your address? ')
+        if address_input not in addresses:
+            print(f"Please enter a valid address")
 
+    address = filtered_addresses.iloc[addresses.index(address_input)]
+    collection_day = address['COLLECTION_DAY']
+    zone = address['ZONE']
+    print(f"Your bin collection day is: {collection_day.title()}.")
 
 if __name__ == '__main__':
     main()
