@@ -3,26 +3,29 @@ import readline
 import pandas as pd
 from street_abbreviations import STREET_TYPE_ABBREVIATIONS, STREET_SUFFIX_ABBREVIATIONS
 
-SUBURBS_AND_ADJOINING_SUBURBS = pd.read_csv('suburbs-and-adjoining-suburbs.csv')
-SUBURBS = SUBURBS_AND_ADJOINING_SUBURBS['SUBURB_NAME'].drop_duplicates().tolist()
-STREET_NAMES_WITH_SUBURBS = pd.read_csv('street-names-with-suburbs.csv')
-WASTE_COLLECTION_DAYS_COLLECTION_DAYS = pd.read_csv('waste-collection-days-collection-days.csv')
-WASTE_COLLECTION_DAYS_COLLECTION_WEEKS = pd.read_csv('waste-collection-days-collection-weeks.csv')
+def load_csv(file_path):
+    return pd.read_csv(file_path)
 
-STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET TYPE'] = (
-    STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET TYPE'].str.upper().map(STREET_TYPE_ABBREVIATIONS)
+suburbs_and_adjoining_suburbs = load_csv('suburbs-and-adjoining-suburbs.csv')
+street_names_with_suburbs = load_csv('street-names-with-suburbs.csv')
+waste_collection_days = load_csv('waste-collection-days-collection-days.csv')
+waste_collection_weeks = load_csv('waste-collection-days-collection-weeks.csv')
+
+suburbs = suburbs_and_adjoining_suburbs['SUBURB_NAME'].drop_duplicates().tolist()
+
+street_names_with_suburbs.loc[:, 'STREET TYPE'] = (
+    street_names_with_suburbs.loc[:, 'STREET TYPE'].str.upper().map(STREET_TYPE_ABBREVIATIONS)
 )
 
-STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'] = (
-    STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'].str.upper().map(STREET_SUFFIX_ABBREVIATIONS)
+street_names_with_suburbs.loc[:, 'STREET SUFFIX'] = (
+    street_names_with_suburbs.loc[:, 'STREET SUFFIX'].str.upper().map(STREET_SUFFIX_ABBREVIATIONS)
 )
 
-WASTE_COLLECTION_DAYS_COLLECTION_WEEKS['WEEK_STARTING'].apply(
+waste_collection_weeks['WEEK_STARTING'].apply(
     lambda week_starting: date.fromisoformat(week_starting)
 )
 
-# TODO: Debug why apply is not changing WEEK_STARTING str to date object
-WASTE_COLLECTION_DAYS_COLLECTION_WEEKS['WEEK_STARTING'] = pd.to_datetime(WASTE_COLLECTION_DAYS_COLLECTION_WEEKS['WEEK_STARTING'])
+waste_collection_weeks['WEEK_STARTING'] = pd.to_datetime(waste_collection_weeks['WEEK_STARTING'])
 
 def format_address(row):
     address = ''
@@ -44,12 +47,12 @@ street_name = None
 address_input = None
 
 def suburb_completer(text, state):
-    suburbs = list(filter(lambda suburb: suburb.startswith(text.upper()), SUBURBS))
+    matches = list(filter(lambda suburb: suburb.startswith(text.upper()), suburbs))
 
-    if not suburbs:
+    if not matches:
         return None
 
-    return suburbs[state]
+    return matches[state]
 
 street_completer_num_calls = 0
 
@@ -84,12 +87,12 @@ def main():
 
     readline.set_completer(suburb_completer)
 
-    while suburb not in SUBURBS:
+    while suburb not in suburbs:
         suburb = input('What suburb do you live in? ')
-        if suburb not in SUBURBS:
+        if suburb not in suburbs:
             print(f"Please enter a valid suburb.")
 
-    filtered_suburb_streets = STREET_NAMES_WITH_SUBURBS[STREET_NAMES_WITH_SUBURBS['SUBURB'] == suburb]
+    filtered_suburb_streets = street_names_with_suburbs[street_names_with_suburbs['SUBURB'] == suburb]
     suburb_streets = filtered_suburb_streets['STREET NAME'].str.cat(
         filtered_suburb_streets['STREET TYPE'], sep=' ').dropna().str.cat(
             filtered_suburb_streets['STREET SUFFIX'], sep=' ', na_rep='').str.strip().tolist()
@@ -103,9 +106,9 @@ def main():
         if street_name not in suburb_streets:
             print(f"Please enter a valid street.")
 
-    filtered_addresses = WASTE_COLLECTION_DAYS_COLLECTION_DAYS[
-        (WASTE_COLLECTION_DAYS_COLLECTION_DAYS["SUBURB"] == suburb) &
-        (WASTE_COLLECTION_DAYS_COLLECTION_DAYS["STREET_NAME"] == street_name)
+    filtered_addresses = waste_collection_days[
+        (waste_collection_days["SUBURB"] == suburb) &
+        (waste_collection_days["STREET_NAME"] == street_name)
     ]
     addresses = filtered_addresses.apply(format_address, axis=1).tolist()
 
@@ -119,16 +122,16 @@ def main():
     address = filtered_addresses.iloc[addresses.index(address_input)]
     collection_day = address['COLLECTION_DAY']
     address_zone = address['ZONE']
-    print(f"Your bin collection day is: {collection_day.title()}.")
+    print(f"Your bin collection day is {collection_day.title()}.")
 
     today = pd.to_datetime(date.today())
-    week_starting = WASTE_COLLECTION_DAYS_COLLECTION_WEEKS[WASTE_COLLECTION_DAYS_COLLECTION_WEEKS['WEEK_STARTING'] <= today].tail(1)
+    week_starting = waste_collection_weeks[waste_collection_weeks['WEEK_STARTING'] <= today].tail(1)
     zone_for_the_week = week_starting['ZONE'].item().upper()
     
     if address_zone == zone_for_the_week:
-        print("It's yellow recycling bin week!")
+        print("Don't forget to take out your yellow recycling bin!")
     else:
-        print("It's green waste bin week!")
+        print("Don't forget to take out your green waste bin!")
 
 if __name__ == '__main__':
     main()
