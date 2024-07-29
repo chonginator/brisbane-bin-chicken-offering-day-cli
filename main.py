@@ -1,30 +1,28 @@
-import pandas as pd
+from datetime import date
 import readline
+import pandas as pd
 from street_abbreviations import STREET_TYPE_ABBREVIATIONS, STREET_SUFFIX_ABBREVIATIONS
 
 SUBURBS_AND_ADJOINING_SUBURBS = pd.read_csv('suburbs-and-adjoining-suburbs.csv')
 SUBURBS = SUBURBS_AND_ADJOINING_SUBURBS['SUBURB_NAME'].drop_duplicates().tolist()
 STREET_NAMES_WITH_SUBURBS = pd.read_csv('street-names-with-suburbs.csv')
 WASTE_COLLECTION_DAYS_COLLECTION_DAYS = pd.read_csv('waste-collection-days-collection-days.csv')
+WASTE_COLLECTION_DAYS_COLLECTION_WEEKS = pd.read_csv('waste-collection-days-collection-weeks.csv')
 
 STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET TYPE'] = (
     STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET TYPE'].str.upper().map(STREET_TYPE_ABBREVIATIONS)
 )
 
-# STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'] = (
-#     STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'].apply(
-#         lambda suffix: STREET_SUFFIX_ABBREVIATIONS.get(suffix.upper(), '')
-#     )
-# )
-
-
 STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'] = (
     STREET_NAMES_WITH_SUBURBS.loc[:, 'STREET SUFFIX'].str.upper().map(STREET_SUFFIX_ABBREVIATIONS)
 )
 
-# print(WASTE_COLLECTION_DAYS_COLLECTION_DAYS[(WASTE_COLLECTION_DAYS_COLLECTION_DAYS["UNIT_NUMBER"].notna()) & (WASTE_COLLECTION_DAYS_COLLECTION_DAYS["HOUSE_NUMBER_SUFFIX"].notna())])
-# print(STREET_NAMES_WITH_SUBURBS["STREET TYPE"].drop_duplicates())
-# print(STREET_NAMES_WITH_SUBURBS["STREET SUFFIX"].drop_duplicates())
+WASTE_COLLECTION_DAYS_COLLECTION_WEEKS['WEEK_STARTING'].apply(
+    lambda week_starting: date.fromisoformat(week_starting)
+)
+
+# TODO: Debug why apply is not changing WEEK_STARTING str to date object
+WASTE_COLLECTION_DAYS_COLLECTION_WEEKS['WEEK_STARTING'] = pd.to_datetime(WASTE_COLLECTION_DAYS_COLLECTION_WEEKS['WEEK_STARTING'])
 
 def format_address(row):
     address = ''
@@ -120,8 +118,17 @@ def main():
 
     address = filtered_addresses.iloc[addresses.index(address_input)]
     collection_day = address['COLLECTION_DAY']
-    zone = address['ZONE']
+    address_zone = address['ZONE']
     print(f"Your bin collection day is: {collection_day.title()}.")
+
+    today = pd.to_datetime(date.today())
+    week_starting = WASTE_COLLECTION_DAYS_COLLECTION_WEEKS[WASTE_COLLECTION_DAYS_COLLECTION_WEEKS['WEEK_STARTING'] <= today].tail(1)
+    zone_for_the_week = week_starting['ZONE'].item().upper()
+    
+    if address_zone == zone_for_the_week:
+        print("It's yellow recycling bin week!")
+    else:
+        print("It's green waste bin week!")
 
 if __name__ == '__main__':
     main()
