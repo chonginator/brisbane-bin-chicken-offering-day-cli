@@ -39,33 +39,39 @@ address_input = None
 
 def suburb_completer(text, state):
     matches = list(filter(lambda suburb: suburb.startswith(text.upper()), suburbs))
+    titlecased_matches = list(map(
+        lambda suburb: suburb.title(),
+        matches
+    ))
 
-    if not matches:
+    if not titlecased_matches:
         return None
 
-    return matches[state]
-
-street_completer_num_calls = 0
+    return titlecased_matches[state]
 
 def street_completer(text, state):
-    if not suburb:
+    if not suburb_streets:
         return None
 
-    streets = list(filter(lambda street: street.startswith(text.upper()), suburb_streets))
+    matches = list(filter(lambda street: street.startswith(text.upper()), suburb_streets))
+    titlecased_matches = list(map(
+        lambda street: street.title(),
+        matches
+    ))
 
-    if not streets:
+    if not titlecased_matches:
         return None
 
-    return streets[state]
+    return titlecased_matches[state]
 
 def address_completer(text, state):
-    if not suburb or not street_name:
+    if not addresses:
         return None
     
-    # matches = addresses[addresses.str.startswith(text)].tolist()
     matches = list(filter(lambda address: address.startswith(text), addresses))
+    titlecased_matches = list(map(lambda address: address.title(), matches))
 
-    return matches[state]
+    return titlecased_matches[state]
 
 def main():
     global suburb, suburb_streets, street_name, address_input, addresses
@@ -78,7 +84,7 @@ def main():
     readline.set_completer(suburb_completer)
 
     while suburb not in suburbs:
-        suburb = input('What suburb do you live in? ')
+        suburb = input('What suburb do you live in? ').upper()
         if suburb not in suburbs:
             print(f"Please enter a valid suburb.")
 
@@ -89,7 +95,7 @@ def main():
 
     street_name = None
     while street_name not in suburb_streets:
-        street_name = input('What street do you live in? ')
+        street_name = input('What street do you live in? ').upper()
 
         if street_name not in suburb_streets:
             print(f"Please enter a valid street.")
@@ -103,7 +109,7 @@ def main():
     readline.set_completer(address_completer)
     
     while address_input not in addresses:
-        address_input = input('What is your address? ')
+        address_input = input('What is your address? ').upper()
         if address_input not in addresses:
             print(f"Please enter a valid address")
 
