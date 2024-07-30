@@ -1,7 +1,6 @@
 from datetime import date
 import readline
 import pandas as pd
-from street_abbreviations import STREET_TYPE_ABBREVIATIONS, STREET_SUFFIX_ABBREVIATIONS
 
 def load_csv(file_path):
     return pd.read_csv(file_path)
@@ -12,14 +11,6 @@ waste_collection_days = load_csv('waste-collection-days-collection-days.csv')
 waste_collection_weeks = load_csv('waste-collection-days-collection-weeks.csv')
 
 suburbs = suburbs_and_adjoining_suburbs['SUBURB_NAME'].drop_duplicates().tolist()
-
-street_names_with_suburbs.loc[:, 'STREET TYPE'] = (
-    street_names_with_suburbs.loc[:, 'STREET TYPE'].str.upper().map(STREET_TYPE_ABBREVIATIONS)
-)
-
-street_names_with_suburbs.loc[:, 'STREET SUFFIX'] = (
-    street_names_with_suburbs.loc[:, 'STREET SUFFIX'].str.upper().map(STREET_SUFFIX_ABBREVIATIONS)
-)
 
 waste_collection_weeks['WEEK_STARTING'].apply(
     lambda week_starting: date.fromisoformat(week_starting)
@@ -65,7 +56,6 @@ def street_completer(text, state):
     if not streets:
         return None
 
-    # print(matches)
     return streets[state]
 
 def address_completer(text, state):
@@ -92,10 +82,8 @@ def main():
         if suburb not in suburbs:
             print(f"Please enter a valid suburb.")
 
-    filtered_suburb_streets = street_names_with_suburbs[street_names_with_suburbs['SUBURB'] == suburb]
-    suburb_streets = filtered_suburb_streets['STREET NAME'].str.cat(
-        filtered_suburb_streets['STREET TYPE'], sep=' ').dropna().str.cat(
-            filtered_suburb_streets['STREET SUFFIX'], sep=' ', na_rep='').str.strip().tolist()
+    filtered_suburb_streets = waste_collection_days[waste_collection_days['SUBURB'] == suburb]
+    suburb_streets = filtered_suburb_streets['STREET_NAME'].drop_duplicates().tolist()
 
     readline.set_completer(street_completer)
 
