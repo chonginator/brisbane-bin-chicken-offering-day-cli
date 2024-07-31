@@ -5,83 +5,63 @@ import pandas as pd
 def load_csv(file_path):
     return pd.read_csv(file_path)
 
-suburbs_and_adjoining_suburbs = load_csv('suburbs-and-adjoining-suburbs.csv')
-street_names_with_suburbs = load_csv('street-names-with-suburbs.csv')
-waste_collection_days = load_csv('waste-collection-days-collection-days.csv')
-waste_collection_weeks = load_csv('waste-collection-days-collection-weeks.csv')
-
-suburbs = suburbs_and_adjoining_suburbs['SUBURB_NAME'].drop_duplicates().tolist()
-
-waste_collection_weeks['WEEK_STARTING'].apply(
-    lambda week_starting: date.fromisoformat(week_starting)
-)
-
-waste_collection_weeks['WEEK_STARTING'] = pd.to_datetime(waste_collection_weeks['WEEK_STARTING'])
-
 def format_address(row):
-    address = ''
+    unit_number = ''
     if pd.notna(row['UNIT_NUMBER']):
-        address += f"{str(int(row['UNIT_NUMBER']))}/"
+        unit_number = f"{str(int(row['UNIT_NUMBER']))}/"
 
-    address += str(row['HOUSE_NUMBER'])
+    house_number = str(row['HOUSE_NUMBER'])
 
+    house_number_suffix = ''
     if pd.notna(row['HOUSE_NUMBER_SUFFIX']):
-        address += row['HOUSE_NUMBER_SUFFIX']
+        house_number_suffix = row['HOUSE_NUMBER_SUFFIX']
 
-    address += f" {row['STREET_NAME']}, {row['SUBURB']}"
+    # address += f" {row['STREET_NAME']}, {row['SUBURB']}"
+    street_name = row['STREET_NAME']
+    suburb = row['SUBURB']
+
+    address = f"{unit_number}{house_number}{house_number_suffix} {street_name}, {suburb}"
 
     return address
 
-suburb = None
-suburb_streets = None
-street_name = None
-address_input = None
+def create_completer(completion_matches):
+    def completer(text, state):
+        matches = list(filter(lambda match: match.startswith(text.upper()), completion_matches))
+        titlecased_matches = list(map(
+            lambda match: match.title(),
+            matches
+        ))
 
-def suburb_completer(text, state):
-    matches = list(filter(lambda suburb: suburb.startswith(text.upper()), suburbs))
-    titlecased_matches = list(map(
-        lambda suburb: suburb.title(),
-        matches
-    ))
+        if not titlecased_matches:
+            return None
 
-    if not titlecased_matches:
-        return None
-
-    return titlecased_matches[state]
-
-def street_completer(text, state):
-    if not suburb_streets:
-        return None
-
-    matches = list(filter(lambda street: street.startswith(text.upper()), suburb_streets))
-    titlecased_matches = list(map(
-        lambda street: street.title(),
-        matches
-    ))
-
-    if not titlecased_matches:
-        return None
-
-    return titlecased_matches[state]
-
-def address_completer(text, state):
-    if not addresses:
-        return None
-    
-    matches = list(filter(lambda address: address.startswith(text), addresses))
-    titlecased_matches = list(map(lambda address: address.title(), matches))
-
-    return titlecased_matches[state]
+        return titlecased_matches[state]
+    return completer
 
 def main():
-    global suburb, suburb_streets, street_name, address_input, addresses
+    suburbs_and_adjoining_suburbs = load_csv('suburbs-and-adjoining-suburbs.csv')
+    waste_collection_days = load_csv('waste-collection-days-collection-days.csv')
+    waste_collection_weeks = load_csv('waste-collection-days-collection-weeks.csv')
+
+    suburbs = suburbs_and_adjoining_suburbs['SUBURB_NAME'].drop_duplicates().tolist()
+
+    waste_collection_weeks['WEEK_STARTING'].apply(
+        lambda week_starting: date.fromisoformat(week_starting)
+    )
+
+    waste_collection_weeks['WEEK_STARTING'] = pd.to_datetime(waste_collection_weeks['WEEK_STARTING'])
+
+    suburb = None
+    suburb_streets = None
+    street_name = None
+    address_input = None
 
     readline.parse_and_bind('tab: menu-complete')
     readline.set_completer_delims('')
 
     print('--- Brisbane Bin Chicken Offering Day ---')
 
-    readline.set_completer(suburb_completer)
+    readline.set_completer(create_completer(suburbs))
 
     while suburb not in suburbs:
         suburb = input('What suburb do you live in? ').upper()
@@ -91,7 +71,7 @@ def main():
     filtered_suburb_streets = waste_collection_days[waste_collection_days['SUBURB'] == suburb]
     suburb_streets = filtered_suburb_streets['STREET_NAME'].drop_duplicates().tolist()
 
-    readline.set_completer(street_completer)
+    readline.set_completer(create_completer(suburb_streets))
 
     street_name = None
     while street_name not in suburb_streets:
@@ -106,7 +86,7 @@ def main():
     ]
     addresses = filtered_addresses.apply(format_address, axis=1).tolist()
 
-    readline.set_completer(address_completer)
+    readline.set_completer(create_completer(addresses))
     
     while address_input not in addresses:
         address_input = input('What is your address? ').upper()
