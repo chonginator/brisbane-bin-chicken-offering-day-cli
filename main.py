@@ -5,20 +5,15 @@ import pandas as pd
 def load_csv(file_path):
     return pd.read_csv(file_path)
 
-def format_address(row):
-    unit_number = ''
-    if pd.notna(row['UNIT_NUMBER']):
-        unit_number = f"{str(int(row['UNIT_NUMBER']))}/"
+def format_address(address):
+    unit_number = address['UNIT_NUMBER']
+    house_number_suffix = address['HOUSE_NUMBER_SUFFIX']
+    house_number = str(address['HOUSE_NUMBER'])
+    street_name = address['STREET_NAME']
+    suburb = address['SUBURB']
 
-    house_number = str(row['HOUSE_NUMBER'])
-
-    house_number_suffix = ''
-    if pd.notna(row['HOUSE_NUMBER_SUFFIX']):
-        house_number_suffix = row['HOUSE_NUMBER_SUFFIX']
-
-    # address += f" {row['STREET_NAME']}, {row['SUBURB']}"
-    street_name = row['STREET_NAME']
-    suburb = row['SUBURB']
+    unit_number = f"{str(int(unit_number))}/" if pd.notna(unit_number) else ''
+    house_number_suffix = f"{house_number_suffix}" if pd.notna(house_number_suffix) else ''
 
     address = f"{unit_number}{house_number}{house_number_suffix} {street_name}, {suburb}"
 
@@ -45,9 +40,9 @@ def main():
 
     suburbs = suburbs_and_adjoining_suburbs['SUBURB_NAME'].drop_duplicates().tolist()
 
-    waste_collection_weeks['WEEK_STARTING'].apply(
-        lambda week_starting: date.fromisoformat(week_starting)
-    )
+    # waste_collection_weeks['WEEK_STARTING'].apply(
+    #     lambda week_starting: date.fromisoformat(week_starting)
+    # )
 
     waste_collection_weeks['WEEK_STARTING'] = pd.to_datetime(waste_collection_weeks['WEEK_STARTING'])
 
