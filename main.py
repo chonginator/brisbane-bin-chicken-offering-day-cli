@@ -78,7 +78,7 @@ def main():
     readline.parse_and_bind('tab: menu-complete')
     readline.set_completer_delims('')
 
-    print('--- Brisbane Bin Chicken Offering Day ---')
+    print('--- Brisbane Bin Chicken Day ---')
 
     readline.set_completer(create_completer_from(suburbs))
     suburb = get_validated_input(
