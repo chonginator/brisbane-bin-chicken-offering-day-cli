@@ -47,7 +47,7 @@ Follow the on-screen prompts to enter you suburb, street, and address to get you
 
 ### Example Usage
 
-```sh
+```text
 $ python main.py
 --- Brisbane Bin Chicken Offering Day ---
 What suburb do you live in? Kangaroo Point
