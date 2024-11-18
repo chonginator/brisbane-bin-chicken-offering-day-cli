@@ -1,4 +1,4 @@
-# Brisbane Bin Chicken Offering Day
+# Brisbane Bin Chicken Offering Day CLI
 
 A Python command-line tool to help Brisbane residents check when to make their weekly food offerings to the sacred bin chickens, i.e., check when their bin collection day is and what bins to take out.
 
